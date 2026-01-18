@@ -14,16 +14,19 @@ class TimeManager():
     LANGUAGE_CFG_FILE_PATH = "config/language.ini"
     rtc = machine.RTC()
     
-    def __init__(self, datafetcher):
+    def __init__(self, datafetcher, app_config, lng_config):
         """
         Initialize the TimeManager with a DataFetcher instance.
 
         Parameters:
         datafetcher (DataFetcher): An instance of DataFetcher to get when weather data is expired.
+        app_config (IniConfig): An instance of IniConfig for application configuration.
+        lng_config (IniConfig): An instance of IniConfig for language configuration.
         """
 
     #-- Read the configuration files ------------------------------------
-        self._lang_config  = IniConfig(self.LANGUAGE_CFG_FILE_PATH) #.... Load language configuration
+        self._lang_config  = lng_config #..... Save language configuration
+        self._app_config   = app_config  #.... Save application configuration
         
     #-- Init time variables ---------------------------------------------
         self._summertime = 2 # Hours ahead of UTC/GMT

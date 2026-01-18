@@ -11,13 +11,23 @@ import gc
 from datafetcher import DataFetcher
 from timemanager import TimeManager
 from screenmanager import ScreenManager                                                                    
+from lib.configuration import IniConfig 
 
+#Paths to the configuration files
+APP_CONFIG_FILE_PATH  = "config/config.ini"
+LNG_CONFIG_FILE_PATH  = "config/language.ini"
+WIFI_CONFIG_FILE_PATH = "config/wifi.ini"
 
 if __name__=='__main__':
+#-- Read configuration files --------------------------------
+    app_config  = IniConfig(APP_CONFIG_FILE_PATH) #.... Load application configuration
+    lng_config  = IniConfig(LNG_CONFIG_FILE_PATH) #.... Load language configuration
+    wifi_config = IniConfig(WIFI_CONFIG_FILE_PATH) #.... Load wifi configuration
+
     # Write in your location. The location must be defined in datafetcher locations dictionary with latitude, longitude and altitude
-    data = DataFetcher()
-    time_manager = TimeManager(data)
-    screen_manager = ScreenManager(data, time_manager)
+    data = DataFetcher(app_config, wifi_config)
+    time_manager = TimeManager(data, app_config, lng_config)
+    screen_manager = ScreenManager(data, time_manager, app_config, lng_config)
     
     while True:
         time_for_update = time_manager.is_it_time()

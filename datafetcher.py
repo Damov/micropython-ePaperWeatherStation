@@ -15,24 +15,19 @@ from machine import RTC
 from errorhandler import ErrorHandler
 
 class DataFetcher():
-    
-    WIFI_CFG_FILE_PATH = "config/wifi.ini"
-    CFG_FILE_PATH = "config/config.ini"
-    
-    _SSID = None
-    _WIFI_TOKEN = None
-    
-    def __init__(self):
+    def __init__(self, app_config, wifi_config):
         """
         Initializes the DataFetcher with a specified location.
 
         Parameters:
-        location (str): The name of the location to fetch data for.
+        -----------
+        app_config (IniConfig): An instance of IniConfig for application configuration.
+        wifi_config (IniConfig): An instance of IniConfig for Wi-Fi configuration.
         """
 
     #-- Read the configuration files ------------------------------
-        self._wifi_config = IniConfig(self.WIFI_CFG_FILE_PATH) #......... Load wifi configuration
-        self._app_config  = IniConfig(self.CFG_FILE_PATH) #.............. Load application configuration
+        self._wifi_config = wifi_config #........................ Save wifi configuration object
+        self._app_config  = app_config #......................... Save application configuration
 
     #-- Set WIFI credentials --------------------------------------
         self._SSID = self._wifi_config.get_section("wifi").get("ssid") #.......... Set SSID

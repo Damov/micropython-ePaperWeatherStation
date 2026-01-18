@@ -14,14 +14,19 @@ import fonts.opensans80, fonts.opensans32, fonts.opensans16
 
 class ScreenManager():
     
-    def __init__(self, data_fetcher, time_manager):
+    def __init__(self, data_fetcher, time_manager, app_config, lng_config):
         """
         Initializes the ScreenManager with a DataFetcher and TimeManager.
 
         Parameters:
         data_fetcher (DataFetcher): An instance of the DataFetcher class.
         time_manager (TimeManager): An instance of the TimeManager class.
+        app_config (IniConfig): An instance of IniConfig for application configuration.
+        lng_config (IniConfig): An instance of IniConfig for language configuration.
         """
+        self._app_config  = app_config #........................ Save application configuration
+        self._lang_config = lng_config  #....................... Save language configuration
+
         self.data_fetcher = data_fetcher
         self.time_manager = time_manager
         self.screen_buffer = bytearray(600 * 448 // 2) # buffer for the display, get memory leaks if not global outside the driver.
