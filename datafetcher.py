@@ -15,8 +15,9 @@ from errorhandler import ErrorHandler
 
 class DataFetcher():
     
-    _SSID = "WIFI_SSID_PLACEHOLDER"
-    _WIFI_TOKEN = "WIFI_PASSWORD_PLACEHOLDER"
+    CFG_FILE = "wifi.ini"
+    _SSID = None
+    _WIFI_TOKEN = None
     
     def __init__(self, location):
         """
@@ -30,8 +31,55 @@ class DataFetcher():
         self.locations = {'drammen': {'latitude': 59.7396, 'longitude': 10.2046, 'altitude': 3},
                           'oslo': {'latitude': 59.9108, 'longitude': 10.7577, 'altitude': 4}
                           }
+        # Read wifi credentials from wifi.ini
+        ssid, passwd = self._load_wifi_config_ini(self.CFG_FILE)
+        self._SSID = ssid
+        self._WIFI_TOKEN = passwd
+
+        #Check if wifi is enabled
         self._is_wifi_enabled()
-        
+    
+    def _load_wifi_config_ini(self, path):
+        """
+        Reads the wifi configuration file
+
+        Parameters
+        ----------
+        path : str
+            Path to the wifi configuration file.
+
+        Returns
+        -------
+        tuple
+            A tuple containing the SSID and password.
+        """
+        ssid = None
+        password = None
+        section_ok = False
+
+        with open(path) as f:
+            for raw in f:
+                line = raw.strip()
+                if not line or line.startswith("#") or line.startswith(";"):
+                    continue
+                if line.startswith("[") and line.endswith("]"):
+                    section_ok = (line[1:-1].strip().lower() == "wifi")
+                    continue
+                if not section_ok:
+                    continue
+                if "=" in line:
+                    k, v = line.split("=", 1)
+                    k = k.strip().lower()
+                    v = v.strip()
+                    if k == "ssid":
+                        ssid = v
+                    elif k == "password":
+                        password = v
+
+        if ssid is None or password is None:
+            raise ValueError("ssid/password missing in wifi.ini")
+        return ssid, password
+
     def _is_wifi_enabled(self):
         """
         Checks if Wi-Fi is enabled and connects if not.
