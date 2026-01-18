@@ -30,8 +30,8 @@ class DataFetcher():
         self._app_config  = app_config #......................... Save application configuration
 
     #-- Set WIFI credentials --------------------------------------
-        self._SSID = self._wifi_config.get_section("wifi").get("ssid") #.......... Set SSID
-        self._WIFI_TOKEN = self._wifi_config.get_section("wifi").get("password") # Set WIFI password
+        self._SSID = str(self._wifi_config.get_section("wifi").get("ssid")) #.......... Set SSID
+        self._WIFI_TOKEN = str(self._wifi_config.get_section("wifi").get("password")) # Set WIFI password
 
     #-- Set user agent and location -------------------------------
         usr_agent = self._app_config.get_section("requests").get("user_agent")# ... Get the user agent from config file
