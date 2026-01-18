@@ -108,7 +108,9 @@ class ScreenManager():
         ew.change_font(fonts.opensans32) # Change font size
         
         # Data now
-        ew.add_text_vertical_center("Nå", width_pos=45, height_start_pos=63, height_end_pos=170)
+        lng_now_str = self._lang_config.get_section("language_common").get("now")
+        ew.add_text_vertical_center(lng_now_str, width_pos=45, height_start_pos=63, height_end_pos=170)
+        
         ew.add_image_vertical_center(image=current_icon, img_width=80, img_height=80, width_pos=100, height_start_pos=63, height_end_pos=170)
         ew.add_text_vertical_center(f"{current_temp}°", width_pos=200, height_start_pos=63, height_end_pos=170)
         
@@ -123,9 +125,11 @@ class ScreenManager():
         ew.add_text_vertical_center(f"{plus_8h_temp}°", width_pos=200, height_start_pos=277, height_end_pos=374)
         
         # Tomorrow at 12:00
+        lng_tomorrow_str = self._lang_config.get_section("language_common").get("tommorow")
         ew.add_image_horizontal_center(image=tomorrow_12h_icon, img_width=200, img_height=200, height_pos=50, width_start_pos=300, width_end_pos=600)
         ew.add_text_horizontal_center(f"{tomorrow_12h_temp}°", height_pos=260, width_start_pos=300, width_end_pos=600)
-        ew.add_text_horizontal_center("i morgen", height_pos=300, width_start_pos=300, width_end_pos=600)
+        ew.add_text_horizontal_center(lng_tomorrow_str + " 12:00", height_pos=300, width_start_pos=300, width_end_pos=600)
+
 
         
         print("Free memory after allocating all content to buffer:", gc.mem_free())
@@ -140,7 +144,18 @@ class ScreenManager():
         ew.change_font(fonts.opensans16)
         
         #ew.add_text(f"{date_and_time[0]} {date_and_time[1]}.{date_and_time[2]} {date_and_time[3]}", 10, 10)
-        ew.add_text(f"Sist oppdatert: {date_and_time[4]}:{date_and_time[5]}", 440, 417)
+        #ew.add_text(f"Sist oppdatert: {date_and_time[4]}:{date_and_time[5]}", 440, 417)
+        #ew.add_text(f"Last update: {date_and_time[4]}:{date_and_time[5]}", 440, 417)
+
+        lng_last_update_str = self._lang_config.get_section("language_common").get("last_update")
+        ew.add_text(
+                f"{lng_last_update_str}: "
+                f"{date_and_time[0]}, {date_and_time[1]}. {date_and_time[2]} {date_and_time[3]} - "
+                f"{date_and_time[4]}:{date_and_time[5]}",
+                10,
+                417
+            )
+        
         #ew.add_text(f"Sist oppdatert: {date_and_time[4]}:{date_and_time[5]}", 10, 417)
         
     def _draw_lines(self, ew):
