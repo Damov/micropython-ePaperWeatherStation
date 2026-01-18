@@ -6,10 +6,12 @@
 import utime
 import machine
 import random
+from lib.configuration import IniConfig 
 from ntptime import settime
 
 class TimeManager():
-    
+
+    LANGUAGE_CFG_FILE_PATH = "config/language.ini"
     rtc = machine.RTC()
     
     def __init__(self, datafetcher):
@@ -19,6 +21,11 @@ class TimeManager():
         Parameters:
         datafetcher (DataFetcher): An instance of DataFetcher to get when weather data is expired.
         """
+
+    #-- Read the configuration files ------------------------------------
+        self._lang_config  = IniConfig(self.LANGUAGE_CFG_FILE_PATH) #.... Load language configuration
+        
+    #-- Init time variables ---------------------------------------------
         self._summertime = 2 # Hours ahead of UTC/GMT
         self._wintertime = 1 # Hours ahead of UTC/GMT
         self._update_times = {'screen_update': None, 'screen_cleaned': False} # Dict for handeling update times.
@@ -114,10 +121,32 @@ class TimeManager():
         Returns:
         list: A list containing [Weekday, day, month, year, hour, minute].
         """
-        day_converter = {0: 'Mandag', 1: 'Tirsdag', 2: 'Onsdag', 3: 'Torsdag', 4: 'Fredag', 5: 'Lørdag', 6: 'Søndag'} # For converting rtc to human.
-        month_converter = {1: 'Januar', 2: 'Februar', 3: 'Mars', 4: 'April', 5: 'Mai', 6: 'Juni',
-                           7: 'Juli', 8: 'August', 9: 'September', 10: 'Oktober', 11: 'November', 12: 'Desember'} # For converting rtc to human.
-        
+    #-- Load language names for weekdays and months ----------------------
+        day_converter = {
+             0: self._lang_config.get_section('language_days').get('name_monday'),
+             1: self._lang_config.get_section('language_days').get('name_tuesday'),
+             2: self._lang_config.get_section('language_days').get('name_wednesday'),
+             3: self._lang_config.get_section('language_days').get('name_thursday'),
+             4: self._lang_config.get_section('language_days').get('name_friday'),
+             5: self._lang_config.get_section('language_days').get('name_saturday'),
+             6: self._lang_config.get_section('language_days').get('name_sunday'),
+        }
+    
+        month_converter = {
+             1  : self._lang_config.get_section('language_months').get('name_january'),
+             2  : self._lang_config.get_section('language_months').get('name_february'),
+             3  : self._lang_config.get_section('language_months').get('name_march'),
+             4  : self._lang_config.get_section('language_months').get('name_april'),
+             5  : self._lang_config.get_section('language_months').get('name_may'),
+             6  : self._lang_config.get_section('language_months').get('name_june'),
+             7  : self._lang_config.get_section('language_months').get('name_july'),
+             8  : self._lang_config.get_section('language_months').get('name_august'),
+             9  : self._lang_config.get_section('language_months').get('name_september'),
+             10 : self._lang_config.get_section('language_months').get('name_october'),
+             11 : self._lang_config.get_section('language_months').get('name_november'),
+             12 : self._lang_config.get_section('language_months').get('name_december')
+        }
+
         time_difference = self._get_time_difference()
             
         rtc_date = self.rtc.datetime()
