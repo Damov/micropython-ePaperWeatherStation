@@ -22,7 +22,7 @@ class DataFetcher():
     _SSID = None
     _WIFI_TOKEN = None
     
-    def __init__(self, location):
+    def __init__(self):
         """
         Initializes the DataFetcher with a specified location.
 

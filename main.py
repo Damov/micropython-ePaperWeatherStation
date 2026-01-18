@@ -15,7 +15,7 @@ from screenmanager import ScreenManager
 
 if __name__=='__main__':
     # Write in your location. The location must be defined in datafetcher locations dictionary with latitude, longitude and altitude
-    data = DataFetcher('drammen')  
+    data = DataFetcher()
     time_manager = TimeManager(data)
     screen_manager = ScreenManager(data, time_manager)
     
