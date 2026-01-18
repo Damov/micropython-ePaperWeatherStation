@@ -10,12 +10,15 @@ import json
 import utime
 import network
 import lib.mrequests as requests
+from lib.configuration import IniConfig 
 from machine import RTC
 from errorhandler import ErrorHandler
 
 class DataFetcher():
     
     WIFI_CFG_FILE_PATH = "config/wifi.ini"
+    CFG_FILE_PATH = "config/config.ini"
+    
     _SSID = None
     _WIFI_TOKEN = None
     
@@ -26,59 +29,26 @@ class DataFetcher():
         Parameters:
         location (str): The name of the location to fetch data for.
         """
-        self.USER_AGENT_HEADER = {'User-Agent': 'pico-ePaper-weather-station v.1.0.0 PLACEHOLDER@PLACEHOLDER.com'} # This header must be changed to your email.
-        self.location = location
-        self.locations = {'drammen': {'latitude': 59.7396, 'longitude': 10.2046, 'altitude': 3},
-                          'oslo': {'latitude': 59.9108, 'longitude': 10.7577, 'altitude': 4}
-                          }
-        # Read wifi credentials from wifi.ini
-        ssid, passwd = self._load_wifi_config_ini(self.CFG_FILE)
-        self._SSID = ssid
-        self._WIFI_TOKEN = passwd
+
+    #-- Read the configuration files ------------------------------
+        self._wifi_config = IniConfig(self.WIFI_CFG_FILE_PATH) #......... Load wifi configuration
+        self._app_config  = IniConfig(self.CFG_FILE_PATH) #.............. Load application configuration
+
+    #-- Set WIFI credentials --------------------------------------
+        self._SSID = self._wifi_config.get_section("wifi").get("ssid") #.......... Set SSID
+        self._WIFI_TOKEN = self._wifi_config.get_section("wifi").get("password") # Set WIFI password
+
+    #-- Set user agent and location -------------------------------
+        usr_agent = self._app_config.get_section("requests").get("user_agent")# ... Get the user agent from config file
+        self.USER_AGENT_HEADER = {'User-Agent': usr_agent} #....................... Set the user agent header
+
+        self.location_name      = self._app_config.get_section("location").get("name") #..... Get location name
+        self.location_latitude  = self._app_config.get_section("location").get("latitude") #. Get latitude
+        self.location_longitude = self._app_config.get_section("location").get("longitude") # Get longitude
+        self.location_altitude  = self._app_config.get_section("location").get("altitude") #. Get altitude
 
         #Check if wifi is enabled
         self._is_wifi_enabled()
-    
-    def _load_wifi_config_ini(self, path):
-        """
-        Reads the wifi configuration file
-
-        Parameters
-        ----------
-        path : str
-            Path to the wifi configuration file.
-
-        Returns
-        -------
-        tuple
-            A tuple containing the SSID and password.
-        """
-        ssid = None
-        password = None
-        section_ok = False
-
-        with open(path) as f:
-            for raw in f:
-                line = raw.strip()
-                if not line or line.startswith("#") or line.startswith(";"):
-                    continue
-                if line.startswith("[") and line.endswith("]"):
-                    section_ok = (line[1:-1].strip().lower() == "wifi")
-                    continue
-                if not section_ok:
-                    continue
-                if "=" in line:
-                    k, v = line.split("=", 1)
-                    k = k.strip().lower()
-                    v = v.strip()
-                    if k == "ssid":
-                        ssid = v
-                    elif k == "password":
-                        password = v
-
-        if ssid is None or password is None:
-            raise ValueError("ssid/password missing in wifi.ini")
-        return ssid, password
 
     def _is_wifi_enabled(self):
         """
@@ -210,10 +180,10 @@ class DataFetcher():
         Raises:
         Exception: If there is an error connecting to the MET Weather API.
         """
-        lat = self.locations[self.location.lower()]['latitude']
-        lon = self.locations[self.location.lower()]['longitude']
-        alt = self.locations[self.location.lower()]['altitude']
-        
+        lat = self.location_latitude
+        lon = self.location_longitude
+        alt = self.location_altitude
+
         self._is_wifi_enabled() # Ensure that wifi is connected.
     
         # GET weather data from MET using mini.json.
@@ -226,8 +196,9 @@ class DataFetcher():
             ErrorHandler(exception_string)
             raise Exception(exception_string)
         else:
-            self._save_file(f'{self.location}', weather_data.json()) # Save the data from the api
-            self._save_file(f'{self.location}_headers', weather_data.headers) # Save the header.
+            file_name_prefix = self._app_config.get_section('requests').get('log_file_name_prefix')
+            self._save_file(f'{file_name_prefix}', weather_data.json()) # Save the data from the api
+            self._save_file(f'{file_name_prefix}_headers', weather_data.headers) # Save the header.
 
             #self._data_expire_time = weather_data.headers['Expires']
 
@@ -249,6 +220,7 @@ class DataFetcher():
         Raises:
         Exception: If there is an error connecting to the Frederik API.
         """
+    
         self._is_wifi_enabled() # Ensure that wifi is connected.
         gc.collect()
         icon_recieved = requests.get(
@@ -300,8 +272,9 @@ class DataFetcher():
             
             requested_hour = spesific_time # The hour as int
             requested_date = (next_date[1], next_date[2]) # (month, day)
-        
-        weather_data = self._read_file(self.location) # Read the weather data.
+
+        file_name_prefix = self._app_config.get_section('requests').get('log_file_name_prefix')
+        weather_data = self._read_file(file_name_prefix) # Read the weather data.
         
         for data in weather_data['properties']['timeseries']: # Loop trough the data and find correct time.
             time_and_date = data['time'].split("T")
@@ -337,7 +310,8 @@ class DataFetcher():
         """
 
         try:
-            headers_list = self._read_file(f"{self.location}_headers", bypass_error=True) # Bypass error drawing to screen if the file doesnt exist.
+            file_name_prefix = self._app_config.get_section('requests').get('log_file_name_prefix')
+            headers_list = self._read_file(f"{file_name_prefix}_headers", bypass_error=True) # Bypass error drawing to screen if the file doesnt exist.
             headers_dict = dict(header.split(": ", 1) for header in headers_list)
             
             expire_time = headers_dict['Expires']
