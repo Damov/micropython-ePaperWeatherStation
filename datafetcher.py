@@ -15,7 +15,7 @@ from errorhandler import ErrorHandler
 
 class DataFetcher():
     
-    CFG_FILE = "wifi.ini"
+    WIFI_CFG_FILE_PATH = "config/wifi.ini"
     _SSID = None
     _WIFI_TOKEN = None
     
