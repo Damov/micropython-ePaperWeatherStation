@@ -60,6 +60,7 @@ class TimeManager():
         Returns:
         int: Hours ahead or behind UTC/GMT.
         """
+        raise Exception("Summer/Winter time not implemented yet.")
         # Not made yet, todo.
         return self._wintertime
     
