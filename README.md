@@ -33,6 +33,18 @@ The wallmount can be downloaded here: [**fran on MakerWorld**](https://makerworl
 - MicroPython firmware installed on the Pico W
 - Wi-Fi network
 
+### Assembly
+
+The following schematic shows how to wire the display. The central unit is the <b>Raspberry Pi Pico 2 W</b>, which communicates with the display over the SPI interface. This project uses the <b>Waveshare 5.65‑inch E‑Paper Display Module</b> with a resolution of 600 × 448 pixels; other Waveshare E‑Paper displays can also be used, but the software configuration (for instance resolution) must be adapted accordingly. The module is usually supplied with an SPI data cable (PH2.0, 20 cm, 8‑pin, 1×), which can be used to connect the display directly to the Raspberry Pi Pico’s SPI pins, plus power (3.3 V) and ground. To reduce the number of loose cables and provide battery operation, the Adafruit PowerBoost 1000C can be included to handle power management and 5 V boost conversion. It is powered by a standard single‑cell 3.7 V LiPo battery and can charge the battery via its micro‑USB connector while the system is running.
+
+<p style="color: red;">Always verify the polarity of both the LiPo battery and the PowerBoost 1000C before making any connection. The PowerBoost 1000C uses a non‑standard battery polarity; reversing the polarity can permanently damage the battery, the PowerBoost 1000C, and potentially the rest of the circuit!</p>
+
+<p align="left">
+  <img src="https://github.com/frederik-andersen/micropython-ePaperWeatherStation/blob/main/screenshots/circuit_image.png" width="600">
+</p>
+
+When the battery is low, it can be recharged while the main display continues to operate. Unfortunately, the status LEDs are located on the back of the display module, so they are not easily visible during normal use. To switch the device on and off, briefly short the <b>EN pin</b> to the adjacent <b>GND pin</b> on the PowerBoost 1000C using a standard momentary or latching switch; this will enable or disable the output of the power module. When these two pins are connected, the PowerBoost 1000C output is latched off and the device is powered down, and it will turn back on once EN is released. Because pulling EN low turns the device off, the switch operates with inverted logic (pressed = off, released = on), and if no switch is installed the device will remain permanently on as long as power is available.
+
 ### Installation
 1. **Clone the Repository**:  
    ```sh
