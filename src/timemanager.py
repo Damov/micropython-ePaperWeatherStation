@@ -6,19 +6,29 @@
 import utime
 import machine
 import random
+from lib.configuration import IniConfig 
 from ntptime import settime
 
 class TimeManager():
-    
+
+    LANGUAGE_CFG_FILE_PATH = "config/language.ini"
     rtc = machine.RTC()
     
-    def __init__(self, datafetcher):
+    def __init__(self, datafetcher, app_config, lng_config):
         """
         Initialize the TimeManager with a DataFetcher instance.
 
         Parameters:
         datafetcher (DataFetcher): An instance of DataFetcher to get when weather data is expired.
+        app_config (IniConfig): An instance of IniConfig for application configuration.
+        lng_config (IniConfig): An instance of IniConfig for language configuration.
         """
+
+    #-- Read the configuration files ------------------------------------
+        self._lang_config  = lng_config #..... Save language configuration
+        self._app_config   = app_config  #.... Save application configuration
+        
+    #-- Init time variables ---------------------------------------------
         self._summertime = 2 # Hours ahead of UTC/GMT
         self._wintertime = 1 # Hours ahead of UTC/GMT
         self._update_times = {'screen_update': None, 'screen_cleaned': False} # Dict for handeling update times.
@@ -38,10 +48,7 @@ class TimeManager():
         try:
             settime()
         except Exception as e:
-            exception_string = f"Could not set time: {e}"
-            ErrorHandler(exception_string)
-            raise
-            
+            raise Exception(f"Could not set time: {e}")
 
     def _get_time_difference(self):
         """
@@ -50,6 +57,7 @@ class TimeManager():
         Returns:
         int: Hours ahead or behind UTC/GMT.
         """
+        #raise Exception("Summer/Winter time not implemented yet.")
         # Not made yet, todo.
         return self._wintertime
     
@@ -114,10 +122,32 @@ class TimeManager():
         Returns:
         list: A list containing [Weekday, day, month, year, hour, minute].
         """
-        day_converter = {0: 'Mandag', 1: 'Tirsdag', 2: 'Onsdag', 3: 'Torsdag', 4: 'Fredag', 5: 'Lørdag', 6: 'Søndag'} # For converting rtc to human.
-        month_converter = {1: 'Januar', 2: 'Februar', 3: 'Mars', 4: 'April', 5: 'Mai', 6: 'Juni',
-                           7: 'Juli', 8: 'August', 9: 'September', 10: 'Oktober', 11: 'November', 12: 'Desember'} # For converting rtc to human.
-        
+    #-- Load language names for weekdays and months ----------------------
+        day_converter = {
+             0: self._lang_config.get_section('language_days').get('name_monday'),
+             1: self._lang_config.get_section('language_days').get('name_tuesday'),
+             2: self._lang_config.get_section('language_days').get('name_wednesday'),
+             3: self._lang_config.get_section('language_days').get('name_thursday'),
+             4: self._lang_config.get_section('language_days').get('name_friday'),
+             5: self._lang_config.get_section('language_days').get('name_saturday'),
+             6: self._lang_config.get_section('language_days').get('name_sunday'),
+        }
+    
+        month_converter = {
+             1  : self._lang_config.get_section('language_months').get('name_january'),
+             2  : self._lang_config.get_section('language_months').get('name_february'),
+             3  : self._lang_config.get_section('language_months').get('name_march'),
+             4  : self._lang_config.get_section('language_months').get('name_april'),
+             5  : self._lang_config.get_section('language_months').get('name_may'),
+             6  : self._lang_config.get_section('language_months').get('name_june'),
+             7  : self._lang_config.get_section('language_months').get('name_july'),
+             8  : self._lang_config.get_section('language_months').get('name_august'),
+             9  : self._lang_config.get_section('language_months').get('name_september'),
+             10 : self._lang_config.get_section('language_months').get('name_october'),
+             11 : self._lang_config.get_section('language_months').get('name_november'),
+             12 : self._lang_config.get_section('language_months').get('name_december')
+        }
+
         time_difference = self._get_time_difference()
             
         rtc_date = self.rtc.datetime()
@@ -145,20 +175,24 @@ class TimeManager():
         Returns:
         str: The adjusted hour in HH format.
         """
-        now = self.get_datetime()[4]
-        requested_time = int(now) + time_delta
+        now_hour   = self.get_datetime()[4]
+        now_minute = self.get_datetime()[5]
+
+        requested_hour = int(now_hour) + time_delta
         
-        if requested_time >= 24:
-            requested_time -= 24
+        if requested_hour >= 24:
+            requested_hour -= 24
         
-        if len(str(requested_time)) < 2: # If hour is less than 2 numbers, add a 0 in front.
-            requested_time = f"0{requested_time}"
-        elif requested_time == 24: # Show 00 instead of 24
-            requested_time = "00"
+        if len(str(requested_hour)) < 2: # If hour is less than 2 numbers, add a 0 in front.
+            requested_hour = f"0{requested_hour}"
+        elif requested_hour == 24: # Show 00 instead of 24
+            requested_hour = "00"
+
+        #Create time string
+        time_str = f'{requested_hour}:{now_minute}'
         
-        return requested_time
-        
-    
+        return time_str
+
     def is_it_time(self):
         """
         Check if it's time to update the screen, download new weather data, or clear the screen.
