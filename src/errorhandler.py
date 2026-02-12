@@ -12,7 +12,7 @@ class ErrorHandler():
         # Used to have more functionallity, but eats up to much ram.
         
     @staticmethod
-    def retry_timer():
+    def retry_timer(delay_seconds=300):
         """
         Flashes led and returns after 5 minutes.
         """
@@ -21,8 +21,9 @@ class ErrorHandler():
             ErrorHandler.flash_led()
             counter += 1
             
-            if counter >= 150: # After 5 min
+            if counter >= delay_seconds: # After delay_seconds
                 break
+        return
         
     @staticmethod
     def flash_led():
