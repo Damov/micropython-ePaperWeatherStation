@@ -40,7 +40,7 @@ The following schematic shows how to wire the display. The central unit is the <
 <p style="color: red;">Always verify the polarity of both the LiPo battery and the PowerBoost 1000C before making any connection. The PowerBoost 1000C uses a non‑standard battery polarity; reversing the polarity can permanently damage the battery, the PowerBoost 1000C, and potentially the rest of the circuit!</p>
 
 <p align="left">
-  <img src="https://github.com/frederik-andersen/micropython-ePaperWeatherStation/blob/main/screenshots/circuit_image.png" width="600">
+  <img src="./screenshots/circuit_image.png" width="600">
 </p>
 
 When the battery is low, it can be recharged while the main display continues to operate. Unfortunately, the status LEDs are located on the back of the display module, so they are not easily visible during normal use. To switch the device on and off, briefly short the <b>EN pin</b> to the adjacent <b>GND pin</b> on the PowerBoost 1000C using a standard momentary or latching switch; this will enable or disable the output of the power module. When these two pins are connected, the PowerBoost 1000C output is latched off and the device is powered down, and it will turn back on once EN is released. Because pulling EN low turns the device off, the switch operates with inverted logic (pressed = off, released = on), and if no switch is installed the device will remain permanently on as long as power is available.
