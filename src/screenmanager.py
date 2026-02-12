@@ -10,8 +10,6 @@ from lib.easywriter import EasyWriter
 from errorhandler import ErrorHandler
 import fonts.opensans80, fonts.opensans32, fonts.opensans16
 
-
-
 class ScreenManager():
     
     def __init__(self, data_fetcher, time_manager, app_config, lng_config):
@@ -94,44 +92,258 @@ class ScreenManager():
         Parameters:
         ew (EasyWriter): An instance of the EasyWriter class used to draw text and images on the display.
         """
-        hour_now = self.time_manager.get_datetime()[4]
-        hour_plus_4 = self.time_manager.get_time_with_delta(4)
-        hour_plus_8 = self.time_manager.get_time_with_delta(8)
+
+        def get_future_time(offset_seconds):
+            """
+            Help function to get future time after offset in seconds.
+
+            Parameters:
+            offset_seconds (int): Number of seconds to add to the current time.
+
+            Returns:
+            tuple: A tuple containing (year, month, mday, hour, minute, second, weekday, yearday).
+            """
+            import time
+        #-- current local time as tuple ----------------------------------------
+            now = time.localtime()  # (year, month, mday, hour, min, sec, weekday, yearday) [web:2]
+
+        #-- convert to seconds since epoch -------------------------------------
+            now_s = time.mktime(now)  # [web:2]
+
+        #-- Get future timestamp -----------------------------------------------
+            future_s = now_s + offset_seconds
+
+        #-- back to a time tuple -----------------------------------------------
+            future = time.localtime(future_s)  # [web:2]
+
+            year, month, mday, hour, minute, second, weekday, yearday = (
+                future[0], future[1], future[2], future[3], future[4], future[5], future[6], future[7]
+            )
+
+        #-- Return -------------------------------------------------------------
+            return weekday, year, month, mday, hour, minute, second
         
-        # Must be fetched first, or the pico will not have enough ram for the request to the api.
-        tomorrow_12h_temp, tomorrow_12h_icon = self.data_fetcher.get_weather_data(day_delta=1, spesific_time=12)
-        
-        current_temp, current_icon = self.data_fetcher.get_weather_data()  # Get current temperature outside.
-        plus_4h_temp, plus_4h_icon = self.data_fetcher.get_weather_data(time_delta=4)  # Get current temperature outside.
-        plus_8h_temp, plus_8h_icon = self.data_fetcher.get_weather_data(time_delta=8)  # Get current temperature outside.
-        
-        
+        # Set font for weather data
         ew.change_font(fonts.opensans32) # Change font size
-        
-        # Data now
-        lng_now_str = self._lang_config.get_section("language_common").get("now")
-        ew.add_text_vertical_center(lng_now_str, width_pos=45, height_start_pos=63, height_end_pos=170)
-        
-        ew.add_image_vertical_center(image=current_icon, img_width=80, img_height=80, width_pos=100, height_start_pos=63, height_end_pos=170)
-        ew.add_text_vertical_center(f"{current_temp}°", width_pos=200, height_start_pos=63, height_end_pos=170)
-        
-        # Data +4h
-        ew.add_text_vertical_center(f"{hour_plus_4}", width_pos=45, height_start_pos=170, height_end_pos=277)
-        ew.add_image_vertical_center(image=plus_4h_icon, img_width=80, img_height=80, width_pos=100, height_start_pos=170, height_end_pos=277)
-        ew.add_text_vertical_center(f"{plus_4h_temp}°", width_pos=200, height_start_pos=170, height_end_pos=277)
-        
-        # Data +8h
-        ew.add_text_vertical_center(f"{hour_plus_8}", width_pos=45, height_start_pos=277, height_end_pos=374)
-        ew.add_image_vertical_center(image=plus_8h_icon, img_width=80, img_height=80, width_pos=100, height_start_pos=277, height_end_pos=374)
-        ew.add_text_vertical_center(f"{plus_8h_temp}°", width_pos=200, height_start_pos=277, height_end_pos=374)
-        
-        # Tomorrow at 12:00
-        lng_tomorrow_str = self._lang_config.get_section("language_common").get("tommorow")
-        ew.add_image_horizontal_center(image=tomorrow_12h_icon, img_width=200, img_height=200, height_pos=50, width_start_pos=300, width_end_pos=600)
-        ew.add_text_horizontal_center(f"{tomorrow_12h_temp}°", height_pos=260, width_start_pos=300, width_end_pos=600)
-        ew.add_text_horizontal_center(lng_tomorrow_str + " 12:00", height_pos=300, width_start_pos=300, width_end_pos=600)
 
+        # --------------------------------------------------------------------------------------------------
+        # LEFT SIDE OF THE SCREEN
+        # --------------------------------------------------------------------------------------------------
+        Y_POS_TIME = 25
+        Y_POS_ICON = 100
+        Y_POS_INFO = 180
 
+        # [1.1] Print current weather data
+        delta_seconds = 0
+        _, year, month, day, hour, minute, _ = get_future_time(delta_seconds)
+        temp, humidity, icon = self.data_fetcher.get_weather_data(year, month, day, hour, retrieve_image = True, symbol_period = 'next_1_hours')
+
+        minute = f"{minute}" if minute >= 10 else f"0{minute}"
+        hour = f"{hour}" if hour >= 10 else f"0{hour}"
+
+        #lng_now_str = self._lang_config.get_section("language_common").get("now")
+
+        dH = 20
+        line_height = int(448/2 - 448/4 - 40)
+        ew.add_image_vertical_center(
+                        image=icon,
+                        img_width = 80,
+                        img_height = 80,
+                        width_pos = Y_POS_ICON,
+                        height_start_pos = line_height,
+                        height_end_pos = line_height + 90
+                    )
+        ew.add_text_vertical_center(
+                        f"{hour}:{minute}",
+                        width_pos = Y_POS_TIME,
+                        height_start_pos = line_height,
+                        height_end_pos = line_height + 90
+                    )
+        ew.add_text_vertical_center(
+                        f"{temp}°C",
+                        width_pos = Y_POS_INFO,
+                        height_start_pos = line_height - dH,
+                        height_end_pos = line_height + 90 - dH
+                    )
+        ew.add_text_vertical_center(
+                        f"{humidity}%",
+                        width_pos = Y_POS_INFO,
+                        height_start_pos = line_height + dH,
+                        height_end_pos = line_height + 90 + dH
+                    )
+
+        # [1.2] Print +4h weather data
+        delta_seconds = 4*60*60
+        _, year, month, day, hour, minute, _ = get_future_time(delta_seconds)
+        temp, humidity, icon = self.data_fetcher.get_weather_data(year, month, day, hour, retrieve_image = True, symbol_period = 'next_1_hours')
+
+        minute = f"{minute}" if minute >= 10 else f"0{minute}"
+        hour = f"{hour}" if hour >= 10 else f"0{hour}"
+
+        dH = 20
+        line_height = int(448/2 - 40)
+        ew.add_image_vertical_center(
+                        image=icon,
+                        img_width = 80,
+                        img_height = 80,
+                        width_pos = Y_POS_ICON,
+                        height_start_pos = line_height,
+                        height_end_pos = line_height + 90
+                    )
+        ew.add_text_vertical_center(
+                        f"{hour}:{minute}",
+                        width_pos = Y_POS_TIME,
+                        height_start_pos = line_height,
+                        height_end_pos = line_height + 90
+                    )
+        ew.add_text_vertical_center(
+                        f"{temp}°C",
+                        width_pos = Y_POS_INFO,
+                        height_start_pos = line_height - dH,
+                        height_end_pos = line_height + 90 - dH
+                    )
+        ew.add_text_vertical_center(
+                        f"{humidity}%",
+                        width_pos = Y_POS_INFO,
+                        height_start_pos = line_height + dH,
+                        height_end_pos = line_height + 90 + dH
+                    )
+
+        # [1.3] Print +8h weather data
+        delta_seconds = 8*60*60
+        _, year, month, day, hour, minute, _ = get_future_time(delta_seconds)
+        temp, humidity, icon = self.data_fetcher.get_weather_data(year, month, day, hour, retrieve_image = True, symbol_period = 'next_1_hours')
+
+        minute = f"{minute}" if minute >= 10 else f"0{minute}"
+        hour = f"{hour}" if hour >= 10 else f"0{hour}"
+
+        dH = 20
+        line_height = int(448/2 + 448/4 - 40)
+        ew.add_image_vertical_center(
+                        image=icon,
+                        img_width = 80,
+                        img_height = 80,
+                        width_pos = Y_POS_ICON,
+                        height_start_pos = line_height,
+                        height_end_pos = line_height + 90
+                    )
+        ew.add_text_vertical_center(
+                        f"{hour}:{minute}",
+                        width_pos = Y_POS_TIME,
+                        height_start_pos = line_height,
+                        height_end_pos = line_height + 90
+                    )
+        ew.add_text_vertical_center(
+                        f"{temp}°C",
+                        width_pos = Y_POS_INFO,
+                        height_start_pos = line_height - dH,
+                        height_end_pos = line_height + 90 - dH
+                    )
+        ew.add_text_vertical_center(
+                        f"{humidity}%",
+                        width_pos = Y_POS_INFO,
+                        height_start_pos = line_height + dH,
+                        height_end_pos = line_height + 90 + dH
+                    )
+        del icon
+        gc.collect()
+
+        # --------------------------------------------------------------------------------------------------
+        # RIGHT SIDE OF THE SCREEN
+        # --------------------------------------------------------------------------------------------------
+        Y_POS_WEEK_NAME = 290
+        Y_POS_MIDDAY_TMP = 440
+
+        Y_POS_DAY1 = 1 * 65
+        Y_POS_DAY2 = 2 * 65
+        Y_POS_DAY3 = 3 * 65
+        Y_POS_DAY4 = 4 * 65
+        Y_POS_DAY5 = 5 * 65
+        
+
+        # Fetch future datetimes
+        day1_weekday, day1_year, day1_month, day1_day, _, _, _ = get_future_time(1 * 24*60*60)
+        day2_weekday, day2_year, day2_month, day2_day, _, _, _ = get_future_time(2 * 24*60*60)
+        day3_weekday, day3_year, day3_month, day3_day, _, _, _ = get_future_time(3 * 24*60*60)
+        day4_weekday, day4_year, day4_month, day4_day, _, _, _ = get_future_time(4 * 24*60*60)
+        day5_weekday, day5_year, day5_month, day5_day, _, _, _ = get_future_time(5 * 24*60*60)
+
+        # Convert weekday to name
+        day_converter = {
+             0: self._lang_config.get_section('language_short_days').get('name_monday'),
+             1: self._lang_config.get_section('language_short_days').get('name_tuesday'),
+             2: self._lang_config.get_section('language_short_days').get('name_wednesday'),
+             3: self._lang_config.get_section('language_short_days').get('name_thursday'),
+             4: self._lang_config.get_section('language_short_days').get('name_friday'),
+             5: self._lang_config.get_section('language_short_days').get('name_saturday'),
+             6: self._lang_config.get_section('language_short_days').get('name_sunday'),
+        }
+        
+        day1_weekday_name = day_converter[day1_weekday]
+        day2_weekday_name = day_converter[day2_weekday]
+        day3_weekday_name = day_converter[day3_weekday]
+        day4_weekday_name = day_converter[day4_weekday]
+        day5_weekday_name = day_converter[day5_weekday]
+
+        #Write days
+        ew.add_text_vertical_center(f"{day1_weekday_name}", width_pos=Y_POS_WEEK_NAME, height_start_pos=Y_POS_DAY1, height_end_pos=Y_POS_DAY1 + 60)
+        ew.add_text_vertical_center(f"{day2_weekday_name}", width_pos=Y_POS_WEEK_NAME, height_start_pos=Y_POS_DAY2, height_end_pos=Y_POS_DAY2 + 60)
+        ew.add_text_vertical_center(f"{day3_weekday_name}", width_pos=Y_POS_WEEK_NAME, height_start_pos=Y_POS_DAY3, height_end_pos=Y_POS_DAY3 + 60)
+        ew.add_text_vertical_center(f"{day4_weekday_name}", width_pos=Y_POS_WEEK_NAME, height_start_pos=Y_POS_DAY4, height_end_pos=Y_POS_DAY4 + 60)
+        ew.add_text_vertical_center(f"{day5_weekday_name}", width_pos=Y_POS_WEEK_NAME, height_start_pos=Y_POS_DAY5, height_end_pos=Y_POS_DAY5 + 60)
+
+        #Retrieve midday weather data
+        day1_midday_temp, _, _ = self.data_fetcher.get_weather_data(day1_year, day1_month, day1_day, 12, retrieve_image = False, symbol_period = 'next_6_hours')
+        day2_midday_temp, _, _ = self.data_fetcher.get_weather_data(day2_year, day2_month, day2_day, 12, retrieve_image = False, symbol_period = 'next_6_hours')
+        day3_midday_temp, _, _ = self.data_fetcher.get_weather_data(day3_year, day3_month, day3_day, 12, retrieve_image = False, symbol_period = 'next_6_hours')
+        day4_midday_temp, _, _ = self.data_fetcher.get_weather_data(day4_year, day4_month, day4_day, 12, retrieve_image = False, symbol_period = 'next_6_hours')
+        day5_midday_temp, _, _ = self.data_fetcher.get_weather_data(day5_year, day5_month, day5_day, 12, retrieve_image = False, symbol_period = 'next_6_hours')
+
+        #Retrieve morning weather data
+        day1_morn_temp, _, _ = self.data_fetcher.get_weather_data(day1_year, day1_month, day1_day, 6, retrieve_image = False, symbol_period = 'next_6_hours')
+        day2_morn_temp, _, _ = self.data_fetcher.get_weather_data(day2_year, day2_month, day2_day, 6, retrieve_image = False, symbol_period = 'next_6_hours')
+        day3_morn_temp, _, _ = self.data_fetcher.get_weather_data(day3_year, day3_month, day3_day, 6, retrieve_image = False, symbol_period = 'next_6_hours')
+        day4_morn_temp, _, _ = self.data_fetcher.get_weather_data(day4_year, day4_month, day4_day, 6, retrieve_image = False, symbol_period = 'next_6_hours')
+        day5_morn_temp, _, _ = self.data_fetcher.get_weather_data(day5_year, day5_month, day5_day, 6, retrieve_image = False, symbol_period = 'next_6_hours')
+
+        #Retrieve symbol for 12 hours
+        _, _, day1_icon = self.data_fetcher.get_weather_data(day1_year, day1_month, day1_day, 12, retrieve_image = True, symbol_period = 'next_6_hours')
+        _, _, day2_icon = self.data_fetcher.get_weather_data(day2_year, day2_month, day2_day, 12, retrieve_image = True, symbol_period = 'next_6_hours')
+        _, _, day3_icon = self.data_fetcher.get_weather_data(day3_year, day3_month, day3_day, 12, retrieve_image = True, symbol_period = 'next_6_hours')
+        _, _, day4_icon = self.data_fetcher.get_weather_data(day4_year, day4_month, day4_day, 12, retrieve_image = True, symbol_period = 'next_6_hours')
+        _, _, day5_icon = self.data_fetcher.get_weather_data(day5_year, day5_month, day5_day, 12, retrieve_image = True, symbol_period = 'next_6_hours')
+
+        #Plot symbol
+        ew.add_image_vertical_center(image=day1_icon, img_width=80, img_height=80, width_pos=Y_POS_WEEK_NAME + 60, height_start_pos=Y_POS_DAY1, height_end_pos=Y_POS_DAY1+80)
+        ew.add_image_vertical_center(image=day2_icon, img_width=80, img_height=80, width_pos=Y_POS_WEEK_NAME + 60, height_start_pos=Y_POS_DAY2, height_end_pos=Y_POS_DAY2+80)
+        ew.add_image_vertical_center(image=day3_icon, img_width=80, img_height=80, width_pos=Y_POS_WEEK_NAME + 60, height_start_pos=Y_POS_DAY3, height_end_pos=Y_POS_DAY3+80)
+        ew.add_image_vertical_center(image=day4_icon, img_width=80, img_height=80, width_pos=Y_POS_WEEK_NAME + 60, height_start_pos=Y_POS_DAY4, height_end_pos=Y_POS_DAY4+80)
+        ew.add_image_vertical_center(image=day5_icon, img_width=80, img_height=80, width_pos=Y_POS_WEEK_NAME + 60, height_start_pos=Y_POS_DAY5, height_end_pos=Y_POS_DAY5+80)
+
+        #Plot temp data on diagram
+        ew.add_text_vertical_center(f"{day1_midday_temp:4.1f}", width_pos=Y_POS_MIDDAY_TMP, height_start_pos=Y_POS_DAY1, height_end_pos=Y_POS_DAY1 + 60)
+        ew.add_text_vertical_center(f"{day2_midday_temp:4.1f}", width_pos=Y_POS_MIDDAY_TMP, height_start_pos=Y_POS_DAY2, height_end_pos=Y_POS_DAY2 + 60)
+        ew.add_text_vertical_center(f"{day3_midday_temp:4.1f}", width_pos=Y_POS_MIDDAY_TMP, height_start_pos=Y_POS_DAY3, height_end_pos=Y_POS_DAY3 + 60)
+        ew.add_text_vertical_center(f"{day4_midday_temp:4.1f}", width_pos=Y_POS_MIDDAY_TMP, height_start_pos=Y_POS_DAY4, height_end_pos=Y_POS_DAY4 + 60)
+        ew.add_text_vertical_center(f"{day5_midday_temp:4.1f}", width_pos=Y_POS_MIDDAY_TMP, height_start_pos=Y_POS_DAY5, height_end_pos=Y_POS_DAY5 + 60)
+        
+        ew.add_text_vertical_center(f"/", width_pos=Y_POS_MIDDAY_TMP + 60, height_start_pos=Y_POS_DAY1, height_end_pos=Y_POS_DAY1 + 60)
+        ew.add_text_vertical_center(f"/", width_pos=Y_POS_MIDDAY_TMP + 60, height_start_pos=Y_POS_DAY2, height_end_pos=Y_POS_DAY2 + 60)
+        ew.add_text_vertical_center(f"/", width_pos=Y_POS_MIDDAY_TMP + 60, height_start_pos=Y_POS_DAY3, height_end_pos=Y_POS_DAY3 + 60)
+        ew.add_text_vertical_center(f"/", width_pos=Y_POS_MIDDAY_TMP + 60, height_start_pos=Y_POS_DAY4, height_end_pos=Y_POS_DAY4 + 60)
+        ew.add_text_vertical_center(f"/", width_pos=Y_POS_MIDDAY_TMP + 60, height_start_pos=Y_POS_DAY5, height_end_pos=Y_POS_DAY5 + 60)
+
+        ew.add_text_vertical_center(f"{day1_morn_temp:4.1}°C", width_pos=Y_POS_MIDDAY_TMP + 70, height_start_pos=Y_POS_DAY1, height_end_pos=Y_POS_DAY1 + 60)
+        ew.add_text_vertical_center(f"{day2_morn_temp:4.1}°C", width_pos=Y_POS_MIDDAY_TMP + 70, height_start_pos=Y_POS_DAY2, height_end_pos=Y_POS_DAY2 + 60)
+        ew.add_text_vertical_center(f"{day3_morn_temp:4.1}°C", width_pos=Y_POS_MIDDAY_TMP + 70, height_start_pos=Y_POS_DAY3, height_end_pos=Y_POS_DAY3 + 60)
+        ew.add_text_vertical_center(f"{day4_morn_temp:4.1}°C", width_pos=Y_POS_MIDDAY_TMP + 70, height_start_pos=Y_POS_DAY4, height_end_pos=Y_POS_DAY4 + 60)
+        ew.add_text_vertical_center(f"{day5_morn_temp:4.1}°C", width_pos=Y_POS_MIDDAY_TMP + 70, height_start_pos=Y_POS_DAY5, height_end_pos=Y_POS_DAY5 + 60)
+
+        #Print times
+        str_12h = self._lang_config.get_section("language_common").get("time_12h")
+        str_6h  = self._lang_config.get_section("language_common").get("time_6h")
+        ew.add_text_vertical_center(f"{str_12h:>4}", width_pos=Y_POS_MIDDAY_TMP-20, height_start_pos=30, height_end_pos=60)
+        ew.add_text_vertical_center(f"{str_6h:>4}", width_pos=Y_POS_MIDDAY_TMP + 70, height_start_pos=30, height_end_pos=60)
         
         print("Free memory after allocating all content to buffer:", gc.mem_free())
 
@@ -163,10 +375,10 @@ class ScreenManager():
         """
         Draw all lines on screen.
         """
-        #ew.device.hline(0, 33, 600, ew.device.Black) # Pos x, Pos Y, lenght, color
-        ew.device.hline(60, 170, 180, ew.device.Black) # Pos x, Pos Y, lenght, color
-        ew.device.hline(60, 277, 180, ew.device.Black) # Pos x, Pos Y, lenght, color
-        ew.device.vline(300, 60, 330, ew.device.Black) # Pos x, Pos Y, lenght, color
+        ew.device.hline(60, int(448/2) - 60, 180, ew.device.Black) # Pos x, Pos Y, lenght, color
+        ew.device.hline(60, int(448/2) + 60, 180, ew.device.Black) # Pos x, Pos Y, lenght, color
+        ew.device.vline(280, 60, 350, ew.device.Black) # Pos x, Pos Y, lenght, color
+    
     def _draw_location(self, ew):
         """
         Draw current location.
