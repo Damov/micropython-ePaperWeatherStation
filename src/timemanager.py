@@ -48,10 +48,7 @@ class TimeManager():
         try:
             settime()
         except Exception as e:
-            exception_string = f"Could not set time: {e}"
-            ErrorHandler(exception_string)
-            raise
-            
+            raise Exception(f"Could not set time: {e}")
 
     def _get_time_difference(self):
         """
@@ -60,7 +57,7 @@ class TimeManager():
         Returns:
         int: Hours ahead or behind UTC/GMT.
         """
-        raise Exception("Summer/Winter time not implemented yet.")
+        #raise Exception("Summer/Winter time not implemented yet.")
         # Not made yet, todo.
         return self._wintertime
     
@@ -178,20 +175,24 @@ class TimeManager():
         Returns:
         str: The adjusted hour in HH format.
         """
-        now = self.get_datetime()[4]
-        requested_time = int(now) + time_delta
+        now_hour   = self.get_datetime()[4]
+        now_minute = self.get_datetime()[5]
+
+        requested_hour = int(now_hour) + time_delta
         
-        if requested_time >= 24:
-            requested_time -= 24
+        if requested_hour >= 24:
+            requested_hour -= 24
         
-        if len(str(requested_time)) < 2: # If hour is less than 2 numbers, add a 0 in front.
-            requested_time = f"0{requested_time}"
-        elif requested_time == 24: # Show 00 instead of 24
-            requested_time = "00"
+        if len(str(requested_hour)) < 2: # If hour is less than 2 numbers, add a 0 in front.
+            requested_hour = f"0{requested_hour}"
+        elif requested_hour == 24: # Show 00 instead of 24
+            requested_hour = "00"
+
+        #Create time string
+        time_str = f'{requested_hour}:{now_minute}'
         
-        return requested_time
-        
-    
+        return time_str
+
     def is_it_time(self):
         """
         Check if it's time to update the screen, download new weather data, or clear the screen.
