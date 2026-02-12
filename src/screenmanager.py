@@ -57,6 +57,7 @@ class ScreenManager():
         self._draw_weather_data(ew)
         self._draw_date(ew)
         self._draw_lines(ew)
+        self._draw_location(ew)
         
         ew.refresh()
         ew.sleep()  # ALWAYS run this after writing to the screen, may cause physical damage to screen if not.
@@ -166,4 +167,14 @@ class ScreenManager():
         ew.device.hline(60, 170, 180, ew.device.Black) # Pos x, Pos Y, lenght, color
         ew.device.hline(60, 277, 180, ew.device.Black) # Pos x, Pos Y, lenght, color
         ew.device.vline(300, 60, 330, ew.device.Black) # Pos x, Pos Y, lenght, color
-    
+    def _draw_location(self, ew):
+        """
+        Draw current location.
+        """
+        # --------------------------------------------------------------------------------------------------
+        # LOCATION NAME ON TOP OF THE SCREEN
+        # --------------------------------------------------------------------------------------------------
+        location_name = self._app_config.get_section('location').get('name')
+        ew.change_font(fonts.opensans16) # Change font size
+        ew.add_text_vertical_center(f"{location_name}", width_pos=10, height_start_pos=5, height_end_pos=30)
+
