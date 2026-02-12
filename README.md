@@ -103,6 +103,14 @@ In main.py input the new location to DataFetcher.
 ## TODO:
 - Handling wintertime and summertime. Wintertime is now hardcoded in TimeManager.
 
+## Assembly
+
+<p align="left">
+  <img src="https://github.com/frederik-andersen/micropython-ePaperWeatherStation/blob/main/screenshots/IMG_0831.jpeg" width="600">
+</p>
+
+TODO: Write here a more precise tutorial.
+
 
 ## Modifications and new libraries:
 - The ePaper [driver](https://github.com/frederik-andersen/micropython-ePaper-5in65-border-color "New epaper driver") is changed so border color can be changed, and the buffer is allocated outside the class. This is to prevent memory leaks that happend with the original driver.
