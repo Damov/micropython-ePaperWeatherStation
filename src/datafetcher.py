@@ -45,58 +45,64 @@ class DataFetcher():
         #Check if wifi is enabled
         self._is_wifi_enabled()
 
-    def _is_wifi_enabled(self):
-        """
-        Checks if Wi-Fi is enabled and connects if not.
-        Ensures Wi-Fi is enabled. If not, attempts to enable it. If connection fails, retries after a delay.
-        """
+    #def _is_wifi_enabled(self):
+    #    """
+    #    Checks if Wi-Fi is enabled and connects if not.
+    #    Ensures Wi-Fi is enabled. If not, attempts to enable it. If connection fails, retries after a delay.
+    #    """
+    #    wlan = network.WLAN(network.STA_IF)
+    #    if wlan.isconnected() == False: # If not connected to wifi.
+    #        print("Not connected to wifi...")
+    #        try:
+    #            self._enable_wifi(wlan) # Connect to wifi.
+    #        except Exception as e:
+    #            raise e
+    #            """
+    #            ErrorHandler(e)
+    #            
+    #            while True:
+    #                ErrorHandler.retry_timer() # Flashes led and waits 5 minutes before continuing this loop.
+    #                try:
+    #                    self._enable_wifi(wlan) # Connect to wifi
+    #                except:
+    #                    continue
+    #            """
+
+    def _is_wifi_enabled(self, retries=3, delay=5):
         wlan = network.WLAN(network.STA_IF)
-        if wlan.isconnected() == False: # If not connected to wifi.
-            print("Not connected to wifi...")
+        for attempt in range(retries):
+            if wlan.isconnected():
+                return
             try:
-                self._enable_wifi(wlan) # Connect to wifi.
+                self._enable_wifi(wlan)
+                return
             except Exception as e:
-                ErrorHandler(e)
-                
-                while True:
-                    ErrorHandler.retry_timer() # Flashes led and waits 5 minutes before continuing this loop.
-                    try:
-                        self._enable_wifi(wlan) # Connect to wifi
-                    except:
-                        continue
-            
-    def _enable_wifi(self, wlan):
-        """
-        Connects to Wi-Fi.
+                print("Wi-Fi attempt", attempt + 1, "failed:", e)
+                utime.sleep(delay)
+        raise RuntimeError("Wi-Fi connection failed after retries")
 
-        Parameters:
-        wlan (network.WLAN): The WLAN object to use for the connection.
-        
-        Raises:
-        RuntimeError: If the network connection fails.
-        """
-        # Activate wlan.
-        wlan.active(True) 
-
-        # Connect to your network
+    def _enable_wifi(self, wlan, connection_timeout = 30):
+        wlan.active(True)
         wlan.connect(self._SSID, self._WIFI_TOKEN)
 
-        # Wait for Wi-Fi connection
-        connection_timeout = 30
+        
         while connection_timeout > 0:
-            if wlan.status() >= 3:
+            status = wlan.status()
+            # break if either finished (>=3) or error (<0)
+            if status < 0 or status >= 3:
                 break
             connection_timeout -= 1
-            print('Waiting for Wi-Fi connection...')
+            print("Waiting for Wi-Fi connection...", status)
             utime.sleep(1)
 
-        # Check if connection is successful
-        if wlan.status() != 3:
-            raise RuntimeError('Failed to establish a network connection.')
+        status = wlan.status()
+        if status != 3:
+            # Optional: map status to a readable message
+            raise RuntimeError(f"Failed to establish a network connection, status: {status}")
         else:
-            print('Connection successful!')
-            network_info = wlan.ifconfig()
-            print('IP address:', network_info[0])
+            print("Connection successful!")
+            print("IP address:", wlan.ifconfig()[0])
+        return
     
     def _read_file(self, filename, bypass_error=False):
         """
@@ -183,6 +189,8 @@ class DataFetcher():
     
         # GET weather data from MET using mini.json.
         # Can use compact or complete parameter instead of mini.json if more data is needed.
+        print(f'https://api.met.no/weatherapi/locationforecast/2.0/compact?lat={lat}&lon={lon}&altitude={alt}')
+
         weather_data = requests.get(
             f'https://api.met.no/weatherapi/locationforecast/2.0/compact?lat={lat}&lon={lon}&altitude={alt}', headers=self.USER_AGENT_HEADER, save_headers=True)
         
@@ -234,67 +242,65 @@ class DataFetcher():
             return data
         
         
-    def get_weather_data(self, time_delta=0, day_delta=0, spesific_time=None):
+    def get_weather_data(
+                self,
+                future_year,
+                future_month,
+                future_day,
+                future_hour,
+                retrieve_image=True,
+                symbol_period='next_1_hours'
+            ):
         """
         Retrieves the temperature and associated weather icon.
 
         Parameters:
-        time_delta (int): The number of hours to add to the current time to get the requested hour.
-        day_delta (int): The number of days to add to the current day to get the requested day.
-        specific_time (int): The hour requested. Used if day_delta is specified.
+        -----------
+        future_year (int): The year of the requested time.
+        future_month (int): The month of the requested time.
+        future_day (int): The day of the requested time.
+        future_hour (int): The hour of the requested time.
+        retrieve_image (bool): Whether to retrieve the weather icon. Default is True.
+        symbol_period (str): The period for the weather symbol. Default is 'next_1_hours'.
         
         Returns:
+        --------
         tuple:
             int: The temperature.
+            int: The humidity.
             bytes: The weather icon as binary data.
         """
-        clock = RTC()
-        current_time = clock.datetime()
-        
-        if day_delta == 0: # If no day delta is specified.
-            requested_hour = current_time[4] + time_delta
-            
-            if requested_hour >= 24:
-                requested_hour -= 24
-            
-        else: # If wanted current day + x days and spesific time.
-            current_time_tuple = current_time[:7] + (0,) # Ensure the tuple has the correct length
-            current_time_seconds = utime.mktime(current_time_tuple) # Convert to seconds since epoch
-            next_time_seconds = current_time_seconds + (day_delta * 86400) # Add one day (86400 seconds)
-            next_datetime = utime.localtime(next_time_seconds) # Convert back to datetime
-            
-            next_date = next_datetime[:3] # Extract the date part (year, month, day)
-            
-            requested_hour = spesific_time # The hour as int
-            requested_date = (next_date[1], next_date[2]) # (month, day)
-
+    
+    #-- Read the actual weather data --------------------------------------------------------
         file_name_prefix = self._app_config.get_section('requests').get('log_file_name_prefix')
         weather_data = self._read_file(file_name_prefix) # Read the weather data.
-        
+
         for data in weather_data['properties']['timeseries']: # Loop trough the data and find correct time.
-            time_and_date = data['time'].split("T")
-            time = time_and_date[1].split(":") # hour, minute, second
-            
-            if day_delta == 0:
-                if requested_hour == int(time[0]): # If both hours match.
-                    temperature = data['data']['instant']['details']['air_temperature'] # Get the current temperature.
-                    # weather_icon = self._get_weather_icon(data['data']['next_1_hours']['summary']['symbol_code']) # Get the current weather icon from api.
-                    weather_icon = self.get_image(f"{data['data']['next_1_hours']['summary']['symbol_code']}_80x80") # Get 80x80 icon from flash.
-                    break
-                
-            else: # If there is a day delta
-                date_list = time_and_date[0].split("-") # Split the date
-                month = int(date_list[1]) # Get month
-                day = int(date_list[2]) # Get day
-                
-                #print(f"Requested day: {requested_date[1]}, Requested month: {requested_date[0]}, Requested time{}")
-                
-                if requested_date[0] == month and requested_date[1] == day and requested_hour == int(time[0]): # If month, day and hour match
-                    temperature = data['data']['instant']['details']['air_temperature'] # Get the current temperature.
-                    weather_icon = self._get_weather_icon(data['data']['next_1_hours']['summary']['symbol_code']) # Get the 200x200 weather icon from api.
-                    break
+        #-- Parse the date time of the particular data point --------------------------------
+            data_year  = int(data['time'].split("T")[0].split("-")[0])
+            data_month = int(data['time'].split("T")[0].split("-")[1])
+            data_day   = int(data['time'].split("T")[0].split("-")[2])
+
+            data_hour   = int(data['time'].split("T")[1].replace('Z','').split(':')[0])
+            data_minute = int(data['time'].split("T")[1].replace('Z','').split(':')[1])
+            data_second = int(data['time'].split("T")[1].replace('Z','').split(':')[2])
+
+            if (future_year == data_year and future_month == data_month and future_day == data_day and future_hour == data_hour):
+            #-- Get the temperature --------------------------------------------------------------------------------
+                temperature = data['data']['instant']['details']['air_temperature'] # Get the current temperature.
+            #-- Get the humidity -----------------------------------------------------------------------------------
+                humidity = data['data']['instant']['details']['relative_humidity'] # Get the current relative humidity.
+
+            #-- Retrieve the weather icon --------------------------------------------------------------------------
+                if retrieve_image == True:
+                    filename = f"{data['data'][symbol_period]['summary']['symbol_code']}_80x80"
+                    weather_icon = self.get_image(filename) #........................................... Get 80x80 icon from flash.
+                else:
+                    weather_icon = None
+                break
                     
-        return temperature, weather_icon
+        return temperature, humidity, weather_icon
+    
     
     def get_expiretime_weatherdata(self):
         """
